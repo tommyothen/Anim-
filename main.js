@@ -7,6 +7,7 @@ const API = require('@chris-kode/myanimelist-api-v2');
 const pkceChallenge = require("pkce-challenge");
 const axios = require('axios');
 const express = require('express')();
+const DiscordRPC = require("discord-rpc");
 require('dotenv').config();
 
 // Keep a global reference of the window object, if you don't, the window will
@@ -23,7 +24,7 @@ let server, anime_list;
 async function main() {
   anime_list = new API.API_LIST_ANIME(access_token);
 
-  
+  mainWindow.loadURL('https://animixplay.to/');
 }
 
 function createWindow () {
@@ -32,7 +33,8 @@ function createWindow () {
     width: 1280,
     height: 720,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
     }
   });
 
@@ -117,3 +119,69 @@ app.on('activate', function () {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
+
+
+
+const clientId = "792490342501842955";
+
+const rpc = new DiscordRPC.Client({
+  transport: 'ipc'
+});
+
+async function setActivity() {
+  if (!rpc || !mainWindow) return;
+
+  if (await mainWindow.webContents.getURL() == "https://animixplay.to/") {
+    rpc.setActivity({
+      details: "Currently Browsing",
+      state: "Lookin' around 👀",
+      largeImageKey: '1'
+    });
+  } else if ((await mainWindow.webContents.getURL()).includes("https://animixplay.to/v1")) {
+
+    let activity = {
+      details: (await mainWindow.webContents.executeJavaScript('document.querySelector("#aligncenter > span.animetitle").innerText')),
+      state: `Episode: `,
+      largeImageKey: '1',
+      partySize: Number(await mainWindow.webContents.executeJavaScript('(document.querySelector("#eptitleplace").innerText).replace("Episode ", "")')),
+      partyMax: Number(await mainWindow.webContents.executeJavaScript('document.querySelector("#epsavailable").innerText')),
+      matchSecret: 'asd'
+    };
+
+    const iframeDomain = await mainWindow.webContents.executeJavaScript("document.getElementById('iframeplayer').src");
+    if (iframeDomain.includes('animixplay.to')) {
+      const hms = await mainWindow.webContents.executeJavaScript("document.getElementById('iframeplayer').contentWindow.document.getElementsByClassName('plyr__time--duration')[0].innerText");
+      let a = hms.split(":");
+
+      let regex = /^\d\d:\d\d$/g;
+
+      if (regex.test(hms)) {
+        activity.endTimestamp = new Date(Date.now() + (((+a[0]) * 60 + (+a[1])) * 1000));
+      } else {
+        activity.endTimestamp = new Date(Date.now() + (((+a[0]) * 60 * 60 + (+a[1]) * 60 + (+a[2])) * 1000));
+      }
+    }
+
+    const malNum = await mainWindow.webContents.executeJavaScript('(document.querySelector("#animebtn").href).replace("https://animixplay.to/anime/", "")');
+
+
+    rpc.setActivity(activity).catch(console.error);
+  }
+}
+
+rpc.on('ready', () => {
+  rpc.setActivity({
+    details: "Currently Browsing",
+    state: "Lookin' around 👀",
+    largeImageKey: '1'
+  });
+
+  // activity can only be set every 15 seconds
+  setInterval(() => {
+    setActivity();
+  }, 5e3);
+});
+
+rpc.login({
+  clientId
+}).catch(console.error);
