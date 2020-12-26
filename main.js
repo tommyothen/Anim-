@@ -1,10 +1,29 @@
 // Modules to control application life and create native browser window
-const {app, BrowserWindow} = require('electron');
+const { app, BrowserWindow, shell } = require('electron');
 const path = require('path');
+const { JsonDB } = require('node-json-db');
+const { Config } = require('node-json-db/dist/lib/JsonDBConfig');
+const API = require('@chris-kode/myanimelist-api-v2');
+const pkceChallenge = require("pkce-challenge");
+const axios = require('axios');
+const express = require('express')();
+require('dotenv').config();
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
+
+const db = new JsonDB(new Config("details", true, true, '/'));
+const pkce = pkceChallenge();
+const oauth = new API.OAUTH(process.env.CLIENT_ID);
+let access_token, refresh_token, expires_in;
+
+// Main function
+async function main() {
+  const anime_list = new API.API_LIST_ANIME(access_token);
+
+  
+}
 
 function createWindow () {
   // Create the browser window.
@@ -16,8 +35,54 @@ function createWindow () {
     }
   });
 
-  // and load the index.html of the app.
-  mainWindow.loadFile('index.html');
+  if (db.exists('/access_token') && db.exists('/refresh_token') && db.exists('/expires_in')) {
+    // Credentials already exist
+    access_token = db.getData('/access_token');
+    refresh_token = db.getData('/refresh_token');
+    expires_in = db.getData('/expires_in');
+
+    console.log("Credentials found!");
+
+    main();
+  } else {
+    // Get new credentials
+    console.log('Fetching new credentials!');
+    const challenge = pkce.code_challenge;
+    const oauthURL = oauth.urlAuthorize(challenge);
+
+    // Listen for response
+    express.get('/', (req, res) => {
+      // Send to oauth server
+      axios.get(`https://ani.uwu.land/accessToken?code=${req.query.code}&challenge=${challenge}`)
+        .then((response) => {
+          response = response.data;
+
+          if (response.error) {
+            console.error(response.error);
+            res.send('Something went wrong! Please restart the app and try again!');
+          } else {
+            access_token = response.body.access_token;
+            refresh_token = response.body.refresh_token;
+            expires_in = response.body.expires_in;
+            db.push('/access_token', access_token);
+            db.push('/refresh_token', refresh_token);
+            db.push('/expires_in', expires_in);
+            res.send('All looks good! Please close this tab and continue to the app! :3');
+
+            console.log("Credentials produced!");
+
+            main();
+          }
+        }).catch((err) => {
+          console.error(err);
+          res.send('Something went wrong! Please restart the app and try again!');
+        });
+    });
+
+    // Open log in url
+    express.listen(7544);
+    shell.openExternal(oauthURL);
+  }
 
   // Open the DevTools.
   // mainWindow.webContents.openDevTools()
