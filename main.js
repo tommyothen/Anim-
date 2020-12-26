@@ -17,10 +17,11 @@ const db = new JsonDB(new Config("details", true, true, '/'));
 const pkce = pkceChallenge();
 const oauth = new API.OAUTH(process.env.CLIENT_ID);
 let access_token, refresh_token, expires_in;
+let server, anime_list;
 
 // Main function
 async function main() {
-  const anime_list = new API.API_LIST_ANIME(access_token);
+  anime_list = new API.API_LIST_ANIME(access_token);
 
   
 }
@@ -70,7 +71,7 @@ function createWindow () {
             res.send('All looks good! Please close this tab and continue to the app! :3');
 
             console.log("Credentials produced!");
-
+            server.close(() => console.log('Internal server closed.'));
             main();
           }
         }).catch((err) => {
@@ -80,7 +81,7 @@ function createWindow () {
     });
 
     // Open log in url
-    express.listen(7544);
+    server = express.listen(7544, () => console.log('Internal server opened.'));
     shell.openExternal(oauthURL);
   }
 
