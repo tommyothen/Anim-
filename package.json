@@ -1,26 +1,23 @@
 {
-  "name": "electron-quick-start",
+  "name": "anim-",
   "version": "1.0.0",
-  "description": "A minimal Electron application",
+  "description": "An anime tracking app with MAL integration",
   "main": "main.js",
   "scripts": {
     "start": "electron ."
   },
-  "repository": "https://github.com/electron/electron-quick-start",
+  "repository": "https://github.com/DaSushiAsian/Anim-",
   "keywords": [
-    "Electron",
-    "quick",
-    "start",
-    "tutorial",
-    "demo"
+    "electron",
+    "anime",
+    "myanimelist",
+    "mal"
   ],
-  "author": "GitHub",
-  "license": "CC0-1.0",
+  "author": "DaSushiAsian",
   "devDependencies": {
     "electron": "^6.0.12"
   },
   "dependencies": {
-    "@chris-kode/myanimelist-api-v2": "^1.0.7",
     "axios": "^0.21.1",
     "discord-rpc": "^3.1.4",
     "dotenv": "^8.2.0",
