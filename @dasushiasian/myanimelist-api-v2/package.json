@@ -1,0 +1,57 @@
+{
+  "_from": "@chris-kode/myanimelist-api-v2",
+  "_id": "@chris-kode/myanimelist-api-v2@1.0.7",
+  "_inBundle": false,
+  "_integrity": "sha512-pBFHxQmLvXEis3L6yQPuWv4iW8i3jKs3JR1ZER7xHY/sT5t93JGbQidnagtzalYtlyVxoEaOf3hwuQEDyoQ9DQ==",
+  "_location": "/@chris-kode/myanimelist-api-v2",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "@chris-kode/myanimelist-api-v2",
+    "name": "@chris-kode/myanimelist-api-v2",
+    "escapedName": "@chris-kode%2fmyanimelist-api-v2",
+    "scope": "@chris-kode",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/@chris-kode/myanimelist-api-v2/-/myanimelist-api-v2-1.0.7.tgz",
+  "_shasum": "9187675ee69f6743bda8e7cff1c071153121e828",
+  "_spec": "@chris-kode/myanimelist-api-v2",
+  "_where": "O:\\Programming\\Electron_Apps\\anitrack",
+  "author": {
+    "name": "Christian Andrés Bacho"
+  },
+  "bugs": {
+    "url": "https://github.com/Chris-Kode/myanimelist-api-v2/issues"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "axios": "^0.19.2"
+  },
+  "deprecated": false,
+  "description": "An awesome wrapper on Nodejs for the new MyAnimeList's API v2!",
+  "homepage": "https://github.com/Chris-Kode/myanimelist-api-v2#readme",
+  "keywords": [
+    "nodejs wrapper anime",
+    "anime",
+    "myanimelist",
+    "myanimelist.net",
+    "api anime",
+    "api",
+    "v2"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "name": "@chris-kode/myanimelist-api-v2",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Chris-Kode/myanimelist-api-v2.git"
+  },
+  "version": "1.0.7"
+}
