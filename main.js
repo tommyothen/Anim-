@@ -19,13 +19,25 @@ const pkce = pkceChallenge();
 const oauth = new API.OAUTH(process.env.CLIENT_ID);
 let access_token, refresh_token, expires_in;
 let server, anime_list;
+let animeWatchMap = new Map();
+
+function convertHMS(hms) {
+  let a = hms.split(":");
+
+  let regex = /^\d\d:\d\d$/g;
+
+  if (regex.test(hms)) {
+    return new Date(Date.now() + (((+a[0]) * 60 + (+a[1])) * 1000));
+  } else {
+    return new Date(Date.now() + (((+a[0]) * 60 * 60 + (+a[1]) * 60 + (+a[2])) * 1000));
+  }
+}
+
 // Main function
 async function main() {
   anime_list = new API.API_LIST_ANIME(access_token);
 
   mainWindow.loadURL('https://animixplay.to/');
-
-
 
   const clientId = "792490342501842955";
 
@@ -36,39 +48,72 @@ async function main() {
   async function setActivity() {
     if (!rpc || !mainWindow) return;
 
-    if (await mainWindow.webContents.getURL() == "https://animixplay.to/") {
+    const pageURL = await mainWindow.webContents.getURL();
+
+    if (pageURL == "https://animixplay.to/") {
       rpc.setActivity({
-        details: "Currently Browsing",
+        details: "Browsing",
         state: "Lookin' around 👀",
         largeImageKey: '1'
       });
-    } else if ((await mainWindow.webContents.getURL()).includes("https://animixplay.to/v1")) {
+    } else if (pageURL.includes("https://animixplay.to/v")) {
+
+      const epNum = Number(await mainWindow.webContents.executeJavaScript('((document.getElementById("eptitleplace") || document.getElementById("eptitle")).innerText).replace("Episode ", "").replace("Internal Player", "")'));
+      const epMax = Number(await mainWindow.webContents.executeJavaScript('document.querySelector("#epsavailable").innerText'));
 
       let activity = {
         details: (await mainWindow.webContents.executeJavaScript('document.querySelector("#aligncenter > span.animetitle").innerText')),
         state: `Episode: `,
         largeImageKey: '1',
-        partySize: Number(await mainWindow.webContents.executeJavaScript('(document.querySelector("#eptitleplace").innerText).replace("Episode ", "")')),
-        partyMax: Number(await mainWindow.webContents.executeJavaScript('document.querySelector("#epsavailable").innerText')),
-        matchSecret: 'asd'
+        partySize: epNum,
+        partyMax: epMax,
+        matchSecret: 'secret'
       };
+      const iframeExists = (await mainWindow.webContents.executeJavaScript("document.getElementById('iframeplayer')")) != null;
 
-      const iframeDomain = await mainWindow.webContents.executeJavaScript("document.getElementById('iframeplayer').src");
-      if (iframeDomain.includes('animixplay.to')) {
-        const hms = await mainWindow.webContents.executeJavaScript("document.getElementById('iframeplayer').contentWindow.document.getElementsByClassName('plyr__time--duration')[0].innerText");
-        let a = hms.split(":");
-
-        let regex = /^\d\d:\d\d$/g;
-
-        if (regex.test(hms)) {
-          activity.endTimestamp = new Date(Date.now() + (((+a[0]) * 60 + (+a[1])) * 1000));
-        } else {
-          activity.endTimestamp = new Date(Date.now() + (((+a[0]) * 60 * 60 + (+a[1]) * 60 + (+a[2])) * 1000));
+      if (iframeExists) {
+        const iframeDomain = await mainWindow.webContents.executeJavaScript("document.getElementById('iframeplayer').src");
+        if (iframeDomain.includes('animixplay.to')) {
+          activity.endTimestamp = convertHMS(await mainWindow.webContents.executeJavaScript("document.getElementById('iframeplayer').contentWindow.document.getElementsByClassName('plyr__time--duration')[0].innerText"));
         }
+      } else {
+        activity.endTimestamp = convertHMS(await mainWindow.webContents.executeJavaScript("$('#playercontainer > div > div.plyr__controls > div.plyr__controls__item.plyr__time--duration.plyr__time')[0].innerText"));
       }
+
+
 
       const malNum = await mainWindow.webContents.executeJavaScript('(document.querySelector("#animebtn").href).replace("https://animixplay.to/anime/", "")');
 
+      if (animeWatchMap.has(pageURL)) {
+        const pageMapData = animeWatchMap.get(pageURL);
+        animeWatchMap.set(pageURL, {
+          time: pageMapData.time + 15,
+          recorded: pageMapData.recorded,
+        });
+
+        console.log(pageMapData);
+
+        if (!pageMapData.recorded && pageMapData.time > 60) {
+          if (epNum == epMax && (await mainWindow.webContents.executeJavaScript("document.getElementById('status').innerText")) == "Status : Completed") {
+            await anime_list.updateList(Number(malNum), { status: "completed", num_watched_episodes: epNum });
+          } else {
+            await anime_list.updateList(Number(malNum), { status: "watching", num_watched_episodes: epNum });
+          }
+
+
+          console.log("updated", malNum);
+          animeWatchMap.set(pageURL, {
+            time: pageMapData.time,
+            recorded: true,
+          });
+        }
+
+      } else {
+        animeWatchMap.set(pageURL, {
+          time: 0,
+          recorded: false,
+        });
+      }
 
       rpc.setActivity(activity).catch(console.error);
     }
@@ -76,7 +121,7 @@ async function main() {
 
   rpc.on('ready', () => {
     rpc.setActivity({
-      details: "Currently Browsing",
+      details: "Browsing",
       state: "Lookin' around 👀",
       largeImageKey: '1'
     });
@@ -84,7 +129,7 @@ async function main() {
     // activity can only be set every 15 seconds
     setInterval(() => {
       setActivity();
-    }, 5e3);
+    }, 15e3);
   });
 
   rpc.login({
@@ -95,8 +140,8 @@ async function main() {
 function createWindow() {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 720,
+    width: 1920,
+    height: 1080,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
